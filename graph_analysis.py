@@ -1,3 +1,7 @@
+import itertools
+import time
+
+
 class Node:
     def __init__(self, name, traits, cost):
         self.name = name
@@ -79,50 +83,112 @@ def check_active(units, trait_pool):
     return active
 
 
-def explore_combinations(start, path, results, visited, limit):
-    path.append(start)
-    visited.add(start)
-    if len(path) > 1 and len(path) <= limit:
-        combo = tuple(sorted(path, key=lambda x: (x.cost, x.name)))
-        if combo not in results:
-            results.append(combo)
-    if len(path) < limit:
-        for neighbor in start.get_neighbors():
-            if neighbor not in visited:
-                explore_combinations(neighbor, path[:], results,
-                                     visited.copy(), limit)
-    path.pop()
-    visited.remove(start)
+def iterate_seeded_growth(comp_pool):
+    results = []
+    excluded = []
+    prev_seed = None
+    for team in comp_pool:
+        neighbors = []
+        current_seed = team[0]
+        if current_seed != prev_seed and prev_seed is not None:
+            excluded.append(prev_seed)
+        for node in team:
+            for neighbor in node.get_neighbors():
+                if neighbor not in team and neighbor not in neighbors:
+                    if neighbor not in excluded:
+                        neighbors.append(neighbor)
+        for neighbor in neighbors:
+            sorted_team = tuple(sorted(team + (neighbor,), key=lambda x:
+                                       (x.cost, x.name)))
+            if sorted_team not in results:
+                results.append(sorted_team)
+        prev_seed = current_seed
+    sorted_results = list(sorted(results, key=lambda x: (x[0].cost,
+                                                         x[0].name)))
+    return sorted_results
 
 
-def explore_seeded_combinations(results, force, level):
-    initial_path = force[:]
-    visited = set(force)
-    for node in force:
-        for neighbor in node.get_neighbors():
-            if neighbor not in visited:
-                explore_combinations(neighbor, initial_path[:], results,
-                                     visited.copy(), level)
+def flatten_once(seq):
+    for item in seq:
+        if isinstance(item, tuple):
+            yield from item
+        else:
+            yield item
 
 
 def get_synergies(level, traits, unit_pool, trait_pool, force=[]):
-    all_results = []
-    if len(force) > level:
-        return all_results
-    if len(force) == 0:
+    start_time = time.time()
+    seeds = []
+    final_comps = []
+    unwraps = 1
+    if level - len(force) < 0:
+        return seeds
+    if level - len(force) == 0:
+        comp = tuple(sorted(force, key=lambda x: (x.cost, x.name)))
+        final_comps.append(comp)
+    if level - len(force) >= 1:
         for unit in unit_pool:
-            explore_combinations(unit, [], all_results, set(), level)
-    elif len(force) == level:
-        combo = tuple(sorted(force, key=lambda x: (x.cost, x.name)))
-        if combo not in all_results:
-            all_results.append(combo)
-    else:
-        explore_seeded_combinations(all_results, force, level)
-    for team in all_results:
-        active = check_active(team, trait_pool)
-        if len(active) >= traits:
-            print("Team: " + str([unit.get_name() for unit in team]) +
-                  " has active traits: " + str(active))
+            seeds.append(tuple([unit]))
+        if level - len(force) == 1:
+            final_comps = seeds
+    if level - len(force) >= 2:
+        branches_2 = iterate_seeded_growth(seeds)
+        if level - len(force) == 2:
+            final_comps = branches_2
+    if level - len(force) >= 3:
+        branches_3 = iterate_seeded_growth(branches_2)
+        if level - len(force) == 3:
+            final_comps = branches_3
+    if level - len(force) == 4:
+        final_comps = itertools.product(branches_3, seeds)
+    if level - len(force) == 5:
+        final_comps = itertools.product(branches_3, branches_2)
+    if level - len(force) == 6:
+        final_comps = itertools.combinations(branches_3, 2)
+    if level - len(force) == 7:
+        final_comps = itertools.combinations(branches_3, 2)
+        final_comps = itertools.product(final_comps, seeds)
+        unwraps += 1
+    if level - len(force) == 8:
+        final_comps = itertools.combinations(branches_3, 2)
+        final_comps = itertools.product(final_comps, branches_2)
+        unwraps += 1
+    if level - len(force) == 9:
+        final_comps = itertools.combinations(branches_3, 3)
+    if len(force) > 0:
+        final_comps = itertools.product(final_comps, [force])
+        unwraps += 1
+
+    combo_time = time.time()
+
+    seen = set()
+    unique_comps = []
+    all_comps = 0
+    filtered_comps = 0
+
+    for team in final_comps:
+        all_comps += 1
+        flattened_team = team
+        for _ in range(unwraps):
+            flattened_team = flatten_once(flattened_team)
+        flattened_team = set(flattened_team)
+        if len(flattened_team) == level:
+            sorted_team_key = tuple(sorted((unit.cost, unit.name)
+                                           for unit in flattened_team))
+            if sorted_team_key not in seen:
+                active = check_active(flattened_team, trait_pool)
+                if len(active) >= traits:
+                    seen.add(sorted_team_key)
+                    unique_comps.append((flattened_team, active))
+                    filtered_comps += 1
+
+    filter_time = time.time()
+    print("Found valid comps of length " + str(level) + " and " +
+          str(traits) + " minimum traits:")
+    print("     Time to get " + str(all_comps) + " combinations: " +
+          str(combo_time - start_time))
+    print("     Time to filter " + str(filtered_comps) + " combinations: " +
+          str(filter_time - combo_time))
 
 
 def main():
@@ -225,8 +291,14 @@ def main():
                  ziggs, zyra]
 
     build_graph(unit_pool)
-
-    get_synergies(7, 8, unit_pool, trait_pool, [jhin, morgana, kindred])
+    get_synergies(1, 1, unit_pool, trait_pool, [])
+    get_synergies(2, 2, unit_pool, trait_pool, [])
+    get_synergies(3, 3, unit_pool, trait_pool, [])
+    get_synergies(4, 4, unit_pool, trait_pool, [])
+    get_synergies(5, 5, unit_pool, trait_pool, [])
+    get_synergies(6, 6, unit_pool, trait_pool, [])
+    get_synergies(7, 7, unit_pool, trait_pool, [])
+    get_synergies(8, 8, unit_pool, trait_pool, [])
 
 
 if __name__ == "__main__":
