@@ -139,25 +139,30 @@ def get_synergies(level, traits, unit_pool, trait_pool, force=[]):
         branches_3 = iterate_seeded_growth(branches_2)
         if level - len(force) == 3:
             final_comps = branches_3
-    if level - len(force) == 4:
-        final_comps = itertools.product(branches_3, seeds)
-    if level - len(force) == 5:
-        final_comps = itertools.product(branches_3, branches_2)
-    if level - len(force) == 6:
-        final_comps = itertools.combinations(branches_3, 2)
-    if level - len(force) == 7:
-        final_comps = itertools.combinations(branches_3, 2)
-        final_comps = itertools.product(final_comps, seeds)
-        unwraps += 1
-    if level - len(force) == 8:
-        final_comps = itertools.combinations(branches_3, 2)
-        final_comps = itertools.product(final_comps, branches_2)
-        unwraps += 1
-    if level - len(force) == 9:
-        final_comps = itertools.combinations(branches_3, 3)
-    if len(force) > 0:
-        final_comps = itertools.product(final_comps, [force])
-        unwraps += 1
+    if level - len(force) >= 4:
+        branches_4 = iterate_seeded_growth(branches_3)
+        if level - len(force) == 4:
+            final_comps = branches_4
+    if level - len(force) >= 5:
+        branches_5 = iterate_seeded_growth(branches_4)
+        if level - len(force) == 5:
+            final_comps = branches_5
+    if level - len(force) >= 6:
+        branches_6 = iterate_seeded_growth(branches_5)
+        if level - len(force) == 6:
+            final_comps = branches_6
+    if level - len(force) >= 7:
+        branches_7 = iterate_seeded_growth(branches_6)
+        if level - len(force) >= 7:
+            final_comps = branches_7
+    if level - len(force) >= 8:
+        branches_8 = iterate_seeded_growth(branches_7)
+        if level - len(force) >= 8:
+            final_comps = branches_8
+    if level - len(force) >= 9:
+        branches_9 = iterate_seeded_growth(branches_8)
+        if level - len(force) == 9:
+            final_comps = branches_9
 
     combo_time = time.time()
 
@@ -185,9 +190,9 @@ def get_synergies(level, traits, unit_pool, trait_pool, force=[]):
     filter_time = time.time()
     print("Found valid comps of length " + str(level) + " and " +
           str(traits) + " minimum traits:")
-    print("     Time to get " + str(all_comps) + " combinations: " +
+    print("     Time to get all combinations: " +
           str(combo_time - start_time))
-    print("     Time to filter " + str(filtered_comps) + " combinations: " +
+    print("     Time to filter valid combinations: " +
           str(filter_time - combo_time))
 
 
@@ -296,9 +301,6 @@ def main():
     get_synergies(3, 3, unit_pool, trait_pool, [])
     get_synergies(4, 4, unit_pool, trait_pool, [])
     get_synergies(5, 5, unit_pool, trait_pool, [])
-    get_synergies(6, 6, unit_pool, trait_pool, [])
-    get_synergies(7, 7, unit_pool, trait_pool, [])
-    get_synergies(8, 8, unit_pool, trait_pool, [])
 
 
 if __name__ == "__main__":
