@@ -120,9 +120,61 @@ def print_timer(end, start):
     print("         Took " + str(end - start) + " seconds to complete.")
 
 
+def get_hybrid(split, unit_pool, force=[]):
+    start_time = time.time()
+
+    branches_2 = []
+    branches_3 = []
+    branches_4 = []
+
+    units = [tuple([unit]) for unit in unit_pool]
+    if 2 in split or 3 in split or 4 in split:
+        branches_2 = iterate_seeded_growth(units)
+        if 3 in split or 4 in split:
+            branches_3 = iterate_seeded_growth(branches_2)
+            if 4 in split:
+                branches_4 = iterate_seeded_growth(branches_3)
+
+    ones = itertools.combinations(unit_pool, split.count(1))
+    twos = itertools.combinations(branches_2, split.count(2))
+    threes = itertools.combinations(branches_3, split.count(3))
+    fours = itertools.combinations(branches_4, split.count(4))
+
+    final_comps = itertools.product(fours, threes, twos, ones)
+    if len(force) > 0:
+        final_comps = itertools.product(final_comps, [force])
+
+    end_time = time.time()
+    print('Gathered combinations of splits ' + str(split) + ":")
+    print_timer(end_time, start_time)
+
+    return final_comps
+
+
+"""
+    for team in final_comps:
+        all_comps += 1
+        flattened_team = team
+        for _ in range(unwraps):
+            flattened_team = flatten_once(flattened_team)
+        flattened_team = set(flattened_team)
+        if len(flattened_team) == level:
+            sorted_team_key = tuple(sorted((unit.cost, unit.name)
+                                           for unit in flattened_team))
+            if sorted_team_key not in seen:
+                active = check_active(flattened_team, trait_pool)
+                if len(active) >= traits:
+                    seen.add(sorted_team_key)
+                    unique_comps.append((flattened_team, active))
+                    filtered_comps += 1
+"""
+
+
 def get_branches(level, unit_pool, force=[]):
     start_time = time.time()
     final_comps = force
+    if len(force) > level:
+        return []
     if len(force) < level:
         if len(force) > 0:
             final_comps = iterate_seeded_growth([force])
@@ -152,6 +204,10 @@ def get_combinations(level, unit_pool, force=[]):
     print_timer(end_time, start_time)
 
     return final_comps
+
+
+def get_optimized_comp_pool(level, unit_pool, force=[]):
+    pass
 
 
 def validate(comps, level, traits, trait_pool):
@@ -284,7 +340,7 @@ def main():
                  ziggs, zyra]
 
     build_graph(unit_pool)
-    # validate(get_branches(1, unit_pool, []), 1, 1, trait_pool)
+    validate(get_branches(1, unit_pool, []), 1, 1, trait_pool)
     # validate(get_branches(2, unit_pool, []), 2, 2, trait_pool)
     # validate(get_branches(3, unit_pool, []), 3, 3, trait_pool)
     # validate(get_branches(4, unit_pool, []), 4, 4, trait_pool)
@@ -293,6 +349,7 @@ def main():
     # validate(get_combinations(3, unit_pool, []), 3, 3, trait_pool)
     # validate(get_combinations(4, unit_pool, []), 4, 4, trait_pool)
     # validate(get_combinations(5, unit_pool, []), 5, 5, trait_pool)
+    validate(get_hybrid([1], unit_pool, []), 1, 1, trait_pool)
 
 
 if __name__ == "__main__":
