@@ -108,56 +108,17 @@ def iterate_seeded_growth(comp_pool):
     return sorted_results
 
 
-def flatten_once(seq):
-    for item in seq:
-        if isinstance(item, tuple):
-            yield from item
-        else:
-            yield item
-
-
 def get_synergies(level, traits, unit_pool, trait_pool, force=[]):
     start_time = time.time()
     seeds = []
     final_comps = []
-    unwraps = 1
     if level - len(force) < 0:
         return seeds
     if level - len(force) == 0:
         comp = tuple(sorted(force, key=lambda x: (x.cost, x.name)))
         final_comps.append(comp)
     if level - len(force) >= 1:
-        for unit in unit_pool:
-            seeds.append(tuple([unit]))
-        if level - len(force) == 1:
-            final_comps = seeds
-    if level - len(force) >= 2:
-        branches_2 = iterate_seeded_growth(seeds)
-        if level - len(force) == 2:
-            final_comps = branches_2
-    if level - len(force) >= 3:
-        branches_3 = iterate_seeded_growth(branches_2)
-        if level - len(force) == 3:
-            final_comps = branches_3
-    if level - len(force) == 4:
-        final_comps = itertools.product(branches_3, seeds)
-    if level - len(force) == 5:
-        final_comps = itertools.product(branches_3, branches_2)
-    if level - len(force) == 6:
-        final_comps = itertools.combinations(branches_3, 2)
-    if level - len(force) == 7:
-        final_comps = itertools.combinations(branches_3, 2)
-        final_comps = itertools.product(final_comps, seeds)
-        unwraps += 1
-    if level - len(force) == 8:
-        final_comps = itertools.combinations(branches_3, 2)
-        final_comps = itertools.product(final_comps, branches_2)
-        unwraps += 1
-    if level - len(force) == 9:
-        final_comps = itertools.combinations(branches_3, 3)
-    if len(force) > 0:
-        final_comps = itertools.product(final_comps, [force])
-        unwraps += 1
+        final_comps = itertools.combinations(unit_pool, level - len(force))
 
     combo_time = time.time()
 
@@ -169,8 +130,6 @@ def get_synergies(level, traits, unit_pool, trait_pool, force=[]):
     for team in final_comps:
         all_comps += 1
         flattened_team = team
-        for _ in range(unwraps):
-            flattened_team = flatten_once(flattened_team)
         flattened_team = set(flattened_team)
         if len(flattened_team) == level:
             sorted_team_key = tuple(sorted((unit.cost, unit.name)
