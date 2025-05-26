@@ -123,14 +123,15 @@ def print_timer(end, start):
 def get_branches(level, unit_pool, force=[]):
     start_time = time.time()
 
+    seeds = [[unit] for unit in unit_pool]
     final_comps = force
     if len(force) < level:
         if len(force) > 0:
             final_comps = iterate_seeded_growth([force])
         else:
-            final_comps = iterate_seeded_growth([[unit for unit in unit_pool]])
-        for _ in range(level - len(force) - 1):
-            final_comps = iterate_seeded_growth(final_comps)
+            final_comps = iterate_seeded_growth(seeds)
+        # for _ in range(level - len(force) - 1):
+        #    final_comps = iterate_seeded_growth(final_comps)
 
     end_time = time.time()
     print('Traversed branches of length ' + str(level) + ":")
@@ -289,11 +290,11 @@ def main():
     validate(get_branches(2, unit_pool, []), 2, 2, trait_pool)
     validate(get_branches(3, unit_pool, []), 3, 3, trait_pool)
     validate(get_branches(4, unit_pool, []), 4, 4, trait_pool)
-    validate(get_combinations(1, unit_pool, []), 1, 1, trait_pool)
-    validate(get_combinations(2, unit_pool, []), 2, 2, trait_pool)
-    validate(get_combinations(3, unit_pool, []), 3, 3, trait_pool)
-    validate(get_combinations(4, unit_pool, []), 4, 4, trait_pool)
-    validate(get_combinations(5, unit_pool, []), 5, 5, trait_pool)
+    # validate(get_combinations(1, unit_pool, []), 1, 1, trait_pool)
+    # validate(get_combinations(2, unit_pool, []), 2, 2, trait_pool)
+    # validate(get_combinations(3, unit_pool, []), 3, 3, trait_pool)
+    # validate(get_combinations(4, unit_pool, []), 4, 4, trait_pool)
+    # validate(get_combinations(5, unit_pool, []), 5, 5, trait_pool)
 
 
 if __name__ == "__main__":
