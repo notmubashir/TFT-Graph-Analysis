@@ -116,108 +116,54 @@ def flatten_once(seq):
             yield item
 
 
-def get_branches(level, traits, unit_pool, trait_pool, force=[]):
+def print_timer(end, start):
+    print("         Took " + str(end - start) + " seconds to complete.")
+
+
+def get_branches(level, unit_pool, force=[]):
     start_time = time.time()
-    seeds = []
-    final_comps = []
-    unwraps = 1
-    if level - len(force) < 0:
-        return seeds
-    if level - len(force) == 0:
-        comp = tuple(sorted(force, key=lambda x: (x.cost, x.name)))
-        final_comps.append(comp)
-    if level - len(force) >= 1:
-        for unit in unit_pool:
-            seeds.append(tuple([unit]))
-        if level - len(force) == 1:
-            final_comps = seeds
-    if level - len(force) >= 2:
-        branches_2 = iterate_seeded_growth(seeds)
-        if level - len(force) == 2:
-            final_comps = branches_2
-    if level - len(force) >= 3:
-        branches_3 = iterate_seeded_growth(branches_2)
-        if level - len(force) == 3:
-            final_comps = branches_3
-    if level - len(force) >= 4:
-        branches_4 = iterate_seeded_growth(branches_3)
-        if level - len(force) == 4:
-            final_comps = branches_4
-    if level - len(force) >= 5:
-        branches_5 = iterate_seeded_growth(branches_4)
-        if level - len(force) == 5:
-            final_comps = branches_5
-    if level - len(force) >= 6:
-        branches_6 = iterate_seeded_growth(branches_5)
-        if level - len(force) == 6:
-            final_comps = branches_6
-    if level - len(force) >= 7:
-        branches_7 = iterate_seeded_growth(branches_6)
-        if level - len(force) >= 7:
-            final_comps = branches_7
-    if level - len(force) >= 8:
-        branches_8 = iterate_seeded_growth(branches_7)
-        if level - len(force) >= 8:
-            final_comps = branches_8
-    if level - len(force) >= 9:
-        branches_9 = iterate_seeded_growth(branches_8)
-        if level - len(force) == 9:
-            final_comps = branches_9
 
-    combo_time = time.time()
+    final_comps = force
+    if len(force) < level:
+        if len(force) > 0:
+            final_comps = iterate_seeded_growth([force])
+        else:
+            final_comps = iterate_seeded_growth([[unit for unit in unit_pool]])
+        for _ in range(level - len(force) - 1):
+            final_comps = iterate_seeded_growth(final_comps)
 
-    seen = set()
-    unique_comps = []
-    all_comps = 0
-    filtered_comps = 0
+    end_time = time.time()
+    print('Traversed branches of length ' + str(level) + ":")
+    print_timer(end_time, start_time)
 
-    for team in final_comps:
-        all_comps += 1
-        flattened_team = team
-        for _ in range(unwraps):
-            flattened_team = flatten_once(flattened_team)
-        flattened_team = set(flattened_team)
-        if len(flattened_team) == level:
-            sorted_team_key = tuple(sorted((unit.cost, unit.name)
-                                           for unit in flattened_team))
-            if sorted_team_key not in seen:
-                active = check_active(flattened_team, trait_pool)
-                if len(active) >= traits:
-                    seen.add(sorted_team_key)
-                    unique_comps.append((flattened_team, active))
-                    filtered_comps += 1
+    return final_comps
 
-    filter_time = time.time()
-    print("Found valid comps of length " + str(level) + " and " +
-          str(traits) + " minimum traits:")
-    print("     Time to get " + str(all_comps) + " combinations: " +
-          str(combo_time - start_time))
-    print("     Time to filter " + str(filtered_comps) + " combinations: " +
-          str(filter_time - combo_time))
-    
 
-def get_combinations(level, traits, unit_pool, trait_pool, force=[]):
+def get_combinations(level, unit_pool, force=[]):
     start_time = time.time()
-    seeds = []
+
     final_comps = []
-    if level - len(force) < 0:
-        return seeds
-    if level - len(force) == 0:
-        comp = tuple(sorted(force, key=lambda x: (x.cost, x.name)))
-        final_comps.append(comp)
-    if level - len(force) >= 1:
+    if len(force) < level:
         final_comps = itertools.combinations(unit_pool, level - len(force))
+    if len(force) > 0:
+        final_comps = itertools.product(final_comps, [force])
+
+    end_time = time.time()
+    print('Generated combinations of length ' + str(level) + ":")
+    print_timer(end_time, start_time)
+
+    return final_comps
 
 
-def validate(level, traits, unit_pool, trait_pool, force=[]):
-    combo_time = time.time()
+def validate(comps, level, traits, trait_pool):
+    start_time = time.time()
 
     seen = set()
     unique_comps = []
     all_comps = 0
-    filtered_comps = 0
+    validated_comps = 0
 
-    for team in final_comps:
+    for team in comps:
         all_comps += 1
         flattened_team = team
         flattened_team = set(flattened_team)
@@ -229,15 +175,14 @@ def validate(level, traits, unit_pool, trait_pool, force=[]):
                 if len(active) >= traits:
                     seen.add(sorted_team_key)
                     unique_comps.append((flattened_team, active))
-                    filtered_comps += 1
+                    all_comps += 1
 
-    filter_time = time.time()
-    print("Found valid comps of length " + str(level) + " and " +
-          str(traits) + " minimum traits:")
-    print("     Time to get " + str(all_comps) + " combinations: " +
-          str(combo_time - start_time))
-    print("     Time to filter " + str(filtered_comps) + " combinations: " +
-          str(filter_time - combo_time))
+    end_time = time.time()
+    print('Validated ' + str(validated_comps) + ' comps out of ' +
+          str(all_comps) + ':')
+    print_timer(end_time, start_time)
+
+    return unique_comps
 
 
 def main():
@@ -340,11 +285,15 @@ def main():
                  ziggs, zyra]
 
     build_graph(unit_pool)
-    get_synergies(1, 1, unit_pool, trait_pool, [])
-    get_synergies(2, 2, unit_pool, trait_pool, [])
-    get_synergies(3, 3, unit_pool, trait_pool, [])
-    get_synergies(4, 4, unit_pool, trait_pool, [])
-    get_synergies(5, 5, unit_pool, trait_pool, [])
+    validate(get_branches(1, unit_pool, []), 1, 1, trait_pool)
+    validate(get_branches(2, unit_pool, []), 2, 2, trait_pool)
+    validate(get_branches(3, unit_pool, []), 3, 3, trait_pool)
+    validate(get_branches(4, unit_pool, []), 4, 4, trait_pool)
+    validate(get_combinations(1, unit_pool, []), 1, 1, trait_pool)
+    validate(get_combinations(2, unit_pool, []), 2, 2, trait_pool)
+    validate(get_combinations(3, unit_pool, []), 3, 3, trait_pool)
+    validate(get_combinations(4, unit_pool, []), 4, 4, trait_pool)
+    validate(get_combinations(5, unit_pool, []), 5, 5, trait_pool)
 
 
 if __name__ == "__main__":
