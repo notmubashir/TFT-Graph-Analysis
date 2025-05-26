@@ -190,9 +190,9 @@ def get_synergies(level, traits, unit_pool, trait_pool, force=[]):
     filter_time = time.time()
     print("Found valid comps of length " + str(level) + " and " +
           str(traits) + " minimum traits:")
-    print("     Time to get all combinations: " +
+    print("     Time to get " + str(all_comps) + " combinations: " +
           str(combo_time - start_time))
-    print("     Time to filter valid combinations: " +
+    print("     Time to filter " + str(filtered_comps) + " combinations: " +
           str(filter_time - combo_time))
 
 
