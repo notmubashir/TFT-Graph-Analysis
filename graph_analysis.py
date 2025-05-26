@@ -122,16 +122,14 @@ def print_timer(end, start):
 
 def get_branches(level, unit_pool, force=[]):
     start_time = time.time()
-
-    seeds = [[unit] for unit in unit_pool]
     final_comps = force
     if len(force) < level:
         if len(force) > 0:
             final_comps = iterate_seeded_growth([force])
         else:
-            final_comps = iterate_seeded_growth(seeds)
-        # for _ in range(level - len(force) - 1):
-        #    final_comps = iterate_seeded_growth(final_comps)
+            final_comps = [tuple([unit]) for unit in unit_pool]
+        for _ in range(level - len(force) - 1):
+            final_comps = iterate_seeded_growth(final_comps)
 
     end_time = time.time()
     print('Traversed branches of length ' + str(level) + ":")
@@ -175,8 +173,8 @@ def validate(comps, level, traits, trait_pool):
                 active = check_active(flattened_team, trait_pool)
                 if len(active) >= traits:
                     seen.add(sorted_team_key)
-                    unique_comps.append((flattened_team, active))
-                    all_comps += 1
+                    unique_comps.append((flattened_team))
+                    validated_comps += 1
 
     end_time = time.time()
     print('Validated ' + str(validated_comps) + ' comps out of ' +
@@ -286,10 +284,10 @@ def main():
                  ziggs, zyra]
 
     build_graph(unit_pool)
-    validate(get_branches(1, unit_pool, []), 1, 1, trait_pool)
-    validate(get_branches(2, unit_pool, []), 2, 2, trait_pool)
-    validate(get_branches(3, unit_pool, []), 3, 3, trait_pool)
-    validate(get_branches(4, unit_pool, []), 4, 4, trait_pool)
+    # validate(get_branches(1, unit_pool, []), 1, 1, trait_pool)
+    # validate(get_branches(2, unit_pool, []), 2, 2, trait_pool)
+    # validate(get_branches(3, unit_pool, []), 3, 3, trait_pool)
+    # validate(get_branches(4, unit_pool, []), 4, 4, trait_pool)
     # validate(get_combinations(1, unit_pool, []), 1, 1, trait_pool)
     # validate(get_combinations(2, unit_pool, []), 2, 2, trait_pool)
     # validate(get_combinations(3, unit_pool, []), 3, 3, trait_pool)
