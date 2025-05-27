@@ -141,8 +141,10 @@ def get_hybrid(split, unit_pool, force=[]):
     fours = itertools.combinations(branches_4, split.count(4))
 
     final_comps = itertools.product(fours, threes, twos, ones)
+    unwraps = 1
     if len(force) > 0:
-        final_comps = itertools.product(final_comps, [force])
+        final_comps = itertools.product(final_comps, [tuple(force)])
+        unwraps += 1
 
     end_time = time.time()
     print('Gathered combinations of splits ' + str(split) + ":")
@@ -210,7 +212,7 @@ def get_optimized_comp_pool(level, unit_pool, force=[]):
     pass
 
 
-def validate(comps, level, traits, trait_pool):
+def validate(comps, level, traits, trait_pool, unwraps=0):
     start_time = time.time()
 
     seen = set()
@@ -221,6 +223,8 @@ def validate(comps, level, traits, trait_pool):
     for team in comps:
         all_comps += 1
         flattened_team = team
+        for _ in range(unwraps):
+            flattened_team = flatten_once(flattened_team)
         flattened_team = set(flattened_team)
         if len(flattened_team) == level:
             sorted_team_key = tuple(sorted((unit.cost, unit.name)
@@ -341,7 +345,7 @@ def main():
 
     build_graph(unit_pool)
     validate(get_branches(1, unit_pool, []), 1, 1, trait_pool)
-    # validate(get_branches(2, unit_pool, []), 2, 2, trait_pool)
+    validate(get_branches(2, unit_pool, []), 2, 2, trait_pool)
     # validate(get_branches(3, unit_pool, []), 3, 3, trait_pool)
     # validate(get_branches(4, unit_pool, []), 4, 4, trait_pool)
     # validate(get_combinations(1, unit_pool, []), 1, 1, trait_pool)
@@ -349,7 +353,8 @@ def main():
     # validate(get_combinations(3, unit_pool, []), 3, 3, trait_pool)
     # validate(get_combinations(4, unit_pool, []), 4, 4, trait_pool)
     # validate(get_combinations(5, unit_pool, []), 5, 5, trait_pool)
-    validate(get_hybrid([1], unit_pool, []), 1, 1, trait_pool)
+    validate(get_hybrid([1], unit_pool, []), 1, 1, trait_pool, 2)
+    validate(get_hybrid([2], unit_pool, []), 2, 2, trait_pool, 2)
 
 
 if __name__ == "__main__":
