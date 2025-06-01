@@ -1,4 +1,5 @@
 import itertools
+from collections import Counter
 import time
 
 
@@ -70,16 +71,36 @@ def add_emblem(unit, trait, unit_pool):
     build_graph(unit_pool)
 
 
-def check_active(units, trait_pool):
-    trait_pts = []
-    active = []
+def trait_potential(comp, trait_thresholds, comp_size):
+    trait_counts = Counter()
+    for unit in comp:
+        for trait in unit.get_traits():
+            trait_counts[trait] += 1
+    remaining_slots = comp_size - len(comp)
+    possible_traits = 0
+
+    for trait, current_count in trait_counts.items():
+        needed = trait_thresholds[trait]
+        if current_count >= needed:
+            # Already activates
+            possible_traits += 1
+        elif current_count + remaining_slots >= needed:
+            # Could be activated with future units
+            possible_traits += 1
+
+    return possible_traits
+
+
+def check_active(units):
+    trait_counts = Counter()
+    active = Counter()
     for unit in units:
         traits = unit.get_traits()
         for trait in traits:
-            trait_pts.append(trait)
-    for trait in trait_pool:
-        if trait_pts.count(trait) >= trait.get_min():
-            active.append([trait.get_name(), trait_pts.count(trait)])
+            trait_counts[trait] += 1
+    for trait in trait_counts:
+        if trait_counts[trait] >= trait.get_min():
+            active[trait.get_name()] = trait_counts[trait]
     return active
 
 
@@ -153,25 +174,6 @@ def get_hybrid(split, unit_pool, force=[]):
     return final_comps
 
 
-"""
-    for team in final_comps:
-        all_comps += 1
-        flattened_team = team
-        for _ in range(unwraps):
-            flattened_team = flatten_once(flattened_team)
-        flattened_team = set(flattened_team)
-        if len(flattened_team) == level:
-            sorted_team_key = tuple(sorted((unit.cost, unit.name)
-                                           for unit in flattened_team))
-            if sorted_team_key not in seen:
-                active = check_active(flattened_team, trait_pool)
-                if len(active) >= traits:
-                    seen.add(sorted_team_key)
-                    unique_comps.append((flattened_team, active))
-                    filtered_comps += 1
-"""
-
-
 def get_branches(level, unit_pool, force=[]):
     start_time = time.time()
     final_comps = force
@@ -208,11 +210,7 @@ def get_combinations(level, unit_pool, force=[]):
     return final_comps
 
 
-def get_optimized_comp_pool(level, unit_pool, force=[]):
-    pass
-
-
-def validate(comps, level, traits, trait_pool, unwraps=0):
+def validate(comps, level, traits, unwraps=0):
     start_time = time.time()
 
     seen = set()
@@ -230,7 +228,7 @@ def validate(comps, level, traits, trait_pool, unwraps=0):
             sorted_team_key = tuple(sorted((unit.cost, unit.name)
                                            for unit in flattened_team))
             if sorted_team_key not in seen:
-                active = check_active(flattened_team, trait_pool)
+                active = check_active(flattened_team)
                 if len(active) >= traits:
                     seen.add(sorted_team_key)
                     unique_comps.append((flattened_team))
@@ -266,11 +264,6 @@ def main():
     techie = Trait('techie', [2, 4, 6, 8])
     dynamo = Trait('dynamo', [2, 3, 4])
     vanguard = Trait('vanguard', [2, 4, 6])
-
-    trait_pool = [anima_squad, boombot, cyberboss, divinicorp, exotech, nitro,
-                  golden_ox, syndicate, street_demon, cypher, bastion,
-                  bruiser, strategist, executioner, marksman, slayer, amp,
-                  rapidfire, techie, dynamo, vanguard]
 
     alistar = Node('alistar', [golden_ox, bruiser], 1)
     annie = Node('annie', [golden_ox, amp], 4)
@@ -344,17 +337,10 @@ def main():
                  ziggs, zyra]
 
     build_graph(unit_pool)
-    validate(get_branches(1, unit_pool, []), 1, 1, trait_pool)
-    validate(get_branches(2, unit_pool, []), 2, 2, trait_pool)
-    # validate(get_branches(3, unit_pool, []), 3, 3, trait_pool)
-    # validate(get_branches(4, unit_pool, []), 4, 4, trait_pool)
-    # validate(get_combinations(1, unit_pool, []), 1, 1, trait_pool)
-    # validate(get_combinations(2, unit_pool, []), 2, 2, trait_pool)
-    # validate(get_combinations(3, unit_pool, []), 3, 3, trait_pool)
-    # validate(get_combinations(4, unit_pool, []), 4, 4, trait_pool)
-    # validate(get_combinations(5, unit_pool, []), 5, 5, trait_pool)
-    validate(get_hybrid([1], unit_pool, []), 1, 1, trait_pool, 2)
-    validate(get_hybrid([2], unit_pool, []), 2, 2, trait_pool, 2)
+    validate(get_branches(1, unit_pool, []), 1, 1)
+    validate(get_branches(2, unit_pool, []), 2, 2)
+    validate(get_hybrid([1], unit_pool, []), 1, 1, 2)
+    validate(get_hybrid([2], unit_pool, []), 2, 2, 2)
 
 
 if __name__ == "__main__":
