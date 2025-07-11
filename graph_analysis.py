@@ -71,7 +71,7 @@ def add_emblem(unit, trait, unit_pool):
     build_graph(unit_pool)
 
 
-def trait_potential(comp, trait_thresholds, comp_size):
+def trait_potential(comp, comp_size):
     trait_counts = Counter()
     for unit in comp:
         for trait in unit.get_traits():
@@ -80,11 +80,10 @@ def trait_potential(comp, trait_thresholds, comp_size):
     possible_traits = 0
 
     for trait, current_count in trait_counts.items():
-        needed = trait_thresholds[trait]
-        if current_count >= needed:
-            # Already activates
+        if current_count >= trait.get_min():
+            # Already activated
             possible_traits += 1
-        elif current_count + remaining_slots >= needed:
+        elif current_count + remaining_slots >= trait.get_min():
             # Could be activated with future units
             possible_traits += 1
 
@@ -337,10 +336,22 @@ def main():
                  ziggs, zyra]
 
     build_graph(unit_pool)
-    validate(get_branches(1, unit_pool, []), 1, 1)
-    validate(get_branches(2, unit_pool, []), 2, 2)
-    validate(get_hybrid([1], unit_pool, []), 1, 1, 2)
-    validate(get_hybrid([2], unit_pool, []), 2, 2, 2)
+
+    units = [tuple([unit]) for unit in unit_pool]
+    branches_2 = iterate_seeded_growth(units)
+    branches_3 = iterate_seeded_growth(branches_2)
+    branches_4 = iterate_seeded_growth(branches_3)
+
+    print(len(branches_2))
+    for branch in branches_2:
+        if trait_potential(branch, 5) < 5:
+            branches_2.remove(branch)
+    print(len(branches_2))
+
+    # validate(get_branches(1, unit_pool, []), 1, 1)
+    # validate(get_branches(2, unit_pool, []), 2, 2)
+    # validate(get_hybrid([1], unit_pool, []), 1, 1, 2)
+    # validate(get_hybrid([2], unit_pool, []), 2, 2, 2)
 
 
 if __name__ == "__main__":
