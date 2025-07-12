@@ -65,29 +65,22 @@ def build_graph(unit_pool):
         unit.set_neighbors()
 
 
-def add_emblem(unit, trait, unit_pool):
-    unit.traits.append(trait)
-    trait.add_unit(unit)
-    build_graph(unit_pool)
-
-
-def trait_potential(comp, comp_size):
+def trait_potential(comp, comp_size, trait_pool):
     trait_counts = Counter()
+    for trait in trait_pool:
+        trait_counts[trait] = 0
     for unit in comp:
         for trait in unit.get_traits():
             trait_counts[trait] += 1
     remaining_slots = comp_size - len(comp)
+    current_traits = 0
     possible_traits = 0
-
     for trait, current_count in trait_counts.items():
         if current_count >= trait.get_min():
-            # Already activated
-            possible_traits += 1
+            current_traits += 1
         elif current_count + remaining_slots >= trait.get_min():
-            # Could be activated with future units
             possible_traits += 1
-
-    return possible_traits
+    return current_traits, possible_traits
 
 
 def check_active(units):
@@ -140,7 +133,7 @@ def print_timer(end, start):
     print("         Took " + str(end - start) + " seconds to complete.")
 
 
-def get_hybrid(split, unit_pool, force=[]):
+def get_hybrid(split, unit_pool, trait_pool, force=[]):
     start_time = time.time()
 
     branches_2 = []
@@ -154,6 +147,19 @@ def get_hybrid(split, unit_pool, force=[]):
             branches_3 = iterate_seeded_growth(branches_2)
             if 4 in split:
                 branches_4 = iterate_seeded_growth(branches_3)
+
+    for branch in branches_2:
+        current, potential = trait_potential(branch, 3, trait_pool)
+        if current < 2 and potential < 3:
+            branches_2.remove(branch)
+    for branch in branches_3:
+        current, potential = trait_potential(branch, 4, trait_pool)
+        if current < 3 and potential < 4:
+            branches_3.remove(branch)
+    for branch in branches_4:
+        current, potential = trait_potential(branch, 5, trait_pool)
+        if current < 4 and potential < 5:
+            branches_4.remove(branch)
 
     ones = itertools.combinations(unit_pool, split.count(1))
     twos = itertools.combinations(branches_2, split.count(2))
@@ -264,6 +270,11 @@ def main():
     dynamo = Trait('dynamo', [2, 3, 4])
     vanguard = Trait('vanguard', [2, 4, 6])
 
+    trait_pool = [anima_squad, boombot, cyberboss, divinicorp, exotech,
+                  nitro, golden_ox, syndicate, street_demon, cypher, bastion,
+                  bruiser, strategist, executioner, marksman, slayer, amp,
+                  rapidfire, techie, dynamo, vanguard]
+
     alistar = Node('alistar', [golden_ox, bruiser], 1)
     annie = Node('annie', [golden_ox, amp], 4)
     aphelios = Node('aphelios', [golden_ox, marksman], 4)
@@ -337,21 +348,33 @@ def main():
 
     build_graph(unit_pool)
 
+    """
     units = [tuple([unit]) for unit in unit_pool]
     branches_2 = iterate_seeded_growth(units)
     branches_3 = iterate_seeded_growth(branches_2)
     branches_4 = iterate_seeded_growth(branches_3)
 
-    print(len(branches_2))
+    print('branches_2: ' + str(len(branches_2)))
     for branch in branches_2:
-        if trait_potential(branch, 5) < 5:
+        current, potential = trait_potential(branch, 3, trait_pool)
+        if current < 2 and potential < 3:
             branches_2.remove(branch)
-    print(len(branches_2))
+    print('filtered branches_2: ' + str(len(branches_2)))
+    print('branches_3: ' + str(len(branches_3)))
+    for branch in branches_3:
+        current, potential = trait_potential(branch, 4, trait_pool)
+        if current < 3 and potential < 4:
+            branches_3.remove(branch)
+    print('filtered branches_3: ' + str(len(branches_3)))
+    print('branches_4: ' + str(len(branches_4)))
+    for branch in branches_4:
+        current, potential = trait_potential(branch, 5, trait_pool)
+        if current < 4 and potential < 5:
+            branches_4.remove(branch)
+    print('filtered branches_4: ' + str(len(branches_4)))
+    """
 
-    # validate(get_branches(1, unit_pool, []), 1, 1)
-    # validate(get_branches(2, unit_pool, []), 2, 2)
-    # validate(get_hybrid([1], unit_pool, []), 1, 1, 2)
-    # validate(get_hybrid([2], unit_pool, []), 2, 2, 2)
+    validate(get_hybrid([2, 2, 1], unit_pool, trait_pool, []), 5, 5, 2)
 
 
 if __name__ == "__main__":
